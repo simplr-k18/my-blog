@@ -32,6 +32,19 @@
             animation: slideUp 1s ease 0.1s forwards;
         }
 
+        .back-to-portfolio {
+            color: #06c;
+            text-decoration: none;
+            font-size: 0.95em;
+            display: inline-block;
+            margin-bottom: 40px;
+            transition: opacity 0.3s ease;
+        }
+
+        .back-to-portfolio:hover {
+            opacity: 0.7;
+        }
+
         h1 {
             font-size: 3.5em;
             font-weight: 600;
@@ -70,6 +83,7 @@
         article:nth-child(2) { animation-delay: 0.5s; }
         article:nth-child(3) { animation-delay: 0.7s; }
         article:nth-child(4) { animation-delay: 0.9s; }
+        article:nth-child(5) { animation-delay: 1.1s; }
 
         article:last-child {
             border-bottom: none;
@@ -176,12 +190,10 @@
             }
         }
 
-        /* Smooth scroll behavior */
         html {
             scroll-behavior: smooth;
         }
 
-        /* Active state for click feedback */
         article:active {
             transform: scale(0.99);
         }
@@ -220,43 +232,24 @@
 <body>
     <div class="container">
         <header>
+            <a href="https://simplr-k18.github.io/rishanth_reddy/" class="back-to-portfolio">← Back to Portfolio</a>
             <h1>Essays</h1>
             <p class="intro">Thoughts on technology, design, and what matters.</p>
         </header>
 
         <div class="essays">
-            <article onclick="window.location.href='articles/one-more-thing.html'">
+
+            <article onclick="window.location.href='articles/OS-for-your-attention.html'">
                 <div class="article-date">November 2025</div>
                 <h2 class="article-title">
-                    One More Thing
+                    The Operating System for Your Attention: A New Paradigm for Human-Digital Harmony
                     <span class="arrow">→</span>
                 </h2>
                 <p class="article-excerpt">
-                    The most powerful ideas are often the simplest ones. They're the ones that make you wonder why nobody thought of them before.
+                    We are no longer users of technology; we have become its raw material. Every notification, every "like," every scroll extracts cognitive resources,...
                 </p>
             </article>
 
-            <article onclick="window.location.href='articles/focus.html'">
-                <div class="article-date">October 2025</div>
-                <h2 class="article-title">
-                    Focus
-                    <span class="arrow">→</span>
-                </h2>
-                <p class="article-excerpt">
-                    Deciding what not to do is as important as deciding what to do. Quality over quantity, always.
-                </p>
-            </article>
-
-            <article onclick="window.location.href='articles/connecting-the-dots.html'">
-                <div class="article-date">September 2025</div>
-                <h2 class="article-title">
-                    Connecting the Dots
-                    <span class="arrow">→</span>
-                </h2>
-                <p class="article-excerpt">
-                    You can't connect the dots looking forward. You can only connect them looking backwards.
-                </p>
-            </article>
         </div>
 
         <footer>
