@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Essays</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+            background: #ffffff;
+            color: #1d1d1f;
+            min-height: 100vh;
+            padding: 80px 20px;
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 100px;
+            opacity: 0;
+            animation: slideUp 1s ease 0.1s forwards;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            margin-bottom: 20px;
+            color: #1d1d1f;
+        }
+
+        .intro {
+            font-size: 1.3em;
+            color: #6e6e73;
+            font-weight: 400;
+            max-width: 500px;
+        }
+
+        .essays {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        article {
+            border-bottom: 1px solid #e8e8ed;
+            padding: 40px 20px;
+            cursor: pointer;
+            position: relative;
+            opacity: 0;
+            animation: slideUp 0.8s ease forwards;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.01) 50%, rgba(0,0,0,0) 100%);
+            background-size: 200% 100%;
+            background-position: 100% 0;
+        }
+
+        article:nth-child(1) { animation-delay: 0.3s; }
+        article:nth-child(2) { animation-delay: 0.5s; }
+        article:nth-child(3) { animation-delay: 0.7s; }
+        article:nth-child(4) { animation-delay: 0.9s; }
+
+        article:last-child {
+            border-bottom: none;
+        }
+
+        article::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 0;
+            height: 60%;
+            background: #000;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        article:hover {
+            padding-left: 32px;
+            background-position: 0% 0;
+        }
+
+        article:hover::before {
+            width: 3px;
+        }
+
+        article:hover .article-title {
+            transform: translateX(8px);
+            color: #000;
+        }
+
+        article:hover .article-excerpt {
+            transform: translateX(8px);
+            color: #1d1d1f;
+        }
+
+        article:hover .arrow {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .article-date {
+            color: #86868b;
+            font-size: 0.95em;
+            margin-bottom: 12px;
+            font-weight: 400;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .article-title {
+            font-size: 2em;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #1d1d1f;
+            letter-spacing: -0.01em;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .arrow {
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-size: 0.8em;
+        }
+
+        .article-excerpt {
+            color: #6e6e73;
+            font-size: 1.1em;
+            line-height: 1.5;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        footer {
+            margin-top: 120px;
+            padding-top: 40px;
+            border-top: 1px solid #e8e8ed;
+            text-align: center;
+            color: #86868b;
+            font-size: 0.9em;
+            opacity: 0;
+            animation: fadeIn 1s ease 1.2s forwards;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Smooth scroll behavior */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Active state for click feedback */
+        article:active {
+            transform: scale(0.99);
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 40px 20px;
+            }
+            
+            h1 {
+                font-size: 2.5em;
+            }
+            
+            header {
+                margin-bottom: 60px;
+            }
+            
+            .intro {
+                font-size: 1.1em;
+            }
+            
+            .article-title {
+                font-size: 1.6em;
+            }
+            
+            article {
+                padding: 30px 15px;
+            }
+
+            article:hover {
+                padding-left: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Essays</h1>
+            <p class="intro">Thoughts on technology, design, and what matters.</p>
+        </header>
+
+        <div class="essays">
+            <article onclick="window.location.href='articles/one-more-thing.html'">
+                <div class="article-date">November 2025</div>
+                <h2 class="article-title">
+                    One More Thing
+                    <span class="arrow">→</span>
+                </h2>
+                <p class="article-excerpt">
+                    The most powerful ideas are often the simplest ones. They're the ones that make you wonder why nobody thought of them before.
+                </p>
+            </article>
+
+            <article onclick="window.location.href='articles/focus.html'">
+                <div class="article-date">October 2025</div>
+                <h2 class="article-title">
+                    Focus
+                    <span class="arrow">→</span>
+                </h2>
+                <p class="article-excerpt">
+                    Deciding what not to do is as important as deciding what to do. Quality over quantity, always.
+                </p>
+            </article>
+
+            <article onclick="window.location.href='articles/connecting-the-dots.html'">
+                <div class="article-date">September 2025</div>
+                <h2 class="article-title">
+                    Connecting the Dots
+                    <span class="arrow">→</span>
+                </h2>
+                <p class="article-excerpt">
+                    You can't connect the dots looking forward. You can only connect them looking backwards.
+                </p>
+            </article>
+        </div>
+
+        <footer>
+            <p>© 2025</p>
+        </footer>
+    </div>
+</body>
+</html>
