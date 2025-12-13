@@ -3,269 +3,394 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Essays</title>
+    <title>Essays & Notes</title>
+    
+    <!-- Fonts: Fraunces (Editorial/Human) & Inter (UI/Clean) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {
+            --bg-color: #FAFAFA;
+            --surface: #FFFFFF;
+            --text-main: #202020;
+            --text-muted: #737373;
+            --border: #E5E5E5;
+            --text-secondary: #555; /* Added for the new header style */
+            --accent: #333;
+            --radius: 12px;
+            --easing: cubic-bezier(0.2, 0.8, 0.2, 1);
         }
 
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-            background: #ffffff;
-            color: #1d1d1f;
-            min-height: 100vh;
-            padding: 80px 20px;
-            line-height: 1.6;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
             overflow-x: hidden;
         }
 
-        .container {
-            max-width: 680px;
+        /* Subtle Noise Texture */
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.03'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 99;
+        }
+
+        .page-layout {
+            display: grid;
+            grid-template-columns: 1fr; /* Mobile first: single column */
+            gap: 60px;
+            max-width: 1200px;
             margin: 0 auto;
+            padding: 80px 24px;
         }
 
-        header {
-            margin-bottom: 100px;
-            opacity: 0;
-            animation: slideUp 1s ease 0.1s forwards;
+        .main-content {
+            max-width: 800px;
+            width: 100%;
         }
 
-        .back-to-portfolio {
-            color: #06c;
+        /* --- Header --- */
+        header { margin-bottom: 60px; }
+
+        /* This is now positioned absolutely on the top-left of the screen */
+        .back-link {
+            position: fixed;
+            top: 24px;
+            left: calc(max(24px, 50% - 600px + 24px)); /* Aligns with page-layout padding */
+            z-index: 100; /* Ensure it's above other content */
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-main);
             text-decoration: none;
-            font-size: 0.95em;
-            display: inline-block;
-            margin-bottom: 40px;
-            transition: opacity 0.3s ease;
+            font-size: 0.9rem;
+            padding: 10px 16px;
+            border-radius: 100px;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            transition: all 0.3s var(--easing);
+        }
+        .back-link:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
+        }
+        .back-link svg { color: var(--text-muted); }
+
+
+        .header-content h1 {
+            font-family: 'Fraunces', serif;
+            font-size: 5rem;
+            font-weight: 300;
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            margin-bottom: 24px;
+            opacity: 0;
+            animation: slideUp 1s var(--easing) 0.2s forwards;
         }
 
-        .back-to-portfolio:hover {
-            opacity: 0.7;
-        }
-
-        h1 {
-            font-size: 3.5em;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            margin-bottom: 20px;
-            color: #1d1d1f;
+        .header-content h1 span {
+            font-style: italic;
+            color: var(--text-secondary);
         }
 
         .intro {
-            font-size: 1.3em;
-            color: #6e6e73;
-            font-weight: 400;
-            max-width: 500px;
+            font-size: 1.1rem;
+            color: var(--text-muted);
+            max-width: 450px;
+            opacity: 0;
+            animation: slideUp 1s var(--easing) 0.4s forwards;
         }
 
-        .essays {
+        /* --- Tags Sidebar --- */
+        .sidebar {
+            position: sticky;
+            top: 50vh;
+            transform: translateY(-50%);
+            align-self: start;
+            display: none; /* Hidden on mobile */
+        }
+
+        .tags-list {
+            list-style: none;
             display: flex;
             flex-direction: column;
-            gap: 0;
+            gap: 8px;
         }
 
-        article {
-            border-bottom: 1px solid #e8e8ed;
-            padding: 40px 20px;
+        .tags-list a {
             cursor: pointer;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: color 0.2s, background-color 0.2s, font-weight 0.2s;
+        }
+        .tags-list a:hover {
+            color: var(--text-main);
+            background-color: #F0F0F0;
+        }
+
+        /* --- Spotlight Section (Featured) --- */
+        .tags-list a.active {
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        /* --- Archive List (The "100 Blogs" Solution) --- */
+        .archive-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .archive-item {
+            display: grid;
+            grid-template-columns: 100px 1fr auto;
+            align-items: baseline;
+            padding: 40px 0;
+            border-bottom: 1px solid var(--border);
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            transition: all 0.4s var(--easing), opacity 0.3s ease, height 0.4s var(--easing), padding 0.4s var(--easing);
             position: relative;
-            opacity: 0;
-            animation: slideUp 0.8s ease forwards;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.01) 50%, rgba(0,0,0,0) 100%);
-            background-size: 200% 100%;
-            background-position: 100% 0;
         }
 
-        article:nth-child(1) { animation-delay: 0.3s; }
-        article:nth-child(2) { animation-delay: 0.5s; }
-        article:nth-child(3) { animation-delay: 0.7s; }
-        article:nth-child(4) { animation-delay: 0.9s; }
-        article:nth-child(5) { animation-delay: 1.1s; }
-
-        article:last-child {
-            border-bottom: none;
-        }
-
-        article::before {
+        /* Hover effect helper */
+        .archive-item::before {
             content: '';
             position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 0;
-            height: 60%;
-            background: #000;
-            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            left: -20px;
+            right: -20px;
+            top: 2px;
+            bottom: 2px;
+            background: #F5F5F5;
+            border-radius: 8px;
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all 0.2s var(--easing);
+            z-index: -1;
         }
 
-        article:hover {
-            padding-left: 32px;
-            background-position: 0% 0;
+        .archive-item:hover::before {
+            opacity: 1;
+            transform: scale(1);
         }
 
-        article:hover::before {
-            width: 3px;
+        .archive-item.hidden {
+            opacity: 0;
+            height: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            pointer-events: none;
         }
 
-        article:hover .article-title {
-            transform: translateX(8px);
-            color: #000;
+        .archive-date {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-feature-settings: "tnum"; /* Monospace numbers */
         }
 
-        article:hover .article-excerpt {
-            transform: translateX(8px);
-            color: #1d1d1f;
+        .archive-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        
+        .archive-excerpt {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-style: italic;
+            display: block; /* Moves excerpt to new line on mobile automatically */
+            margin-top: 4px;
         }
 
-        article:hover .arrow {
+        .archive-tags {
+            margin-top: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .archive-tags .tag {
+            display: inline-block;
+            font-size: 0.75rem;
+            background: #F3F3F3;
+            padding: 4px 10px;
+            border-radius: 100px;
+            font-weight: 500;
+        }
+
+        .archive-arrow {
+            opacity: 0;
+            transform: translateX(-10px);
+            transition: all 0.2s ease;
+            color: var(--text-muted);
+        }
+
+        .archive-item:hover .archive-arrow {
             opacity: 1;
             transform: translateX(0);
         }
-
-        .article-date {
-            color: #86868b;
-            font-size: 0.95em;
-            margin-bottom: 12px;
-            font-weight: 400;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .article-title {
-            font-size: 2em;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #1d1d1f;
-            letter-spacing: -0.01em;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .arrow {
-            opacity: 0;
-            transform: translateX(-10px);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 0.8em;
-        }
-
-        .article-excerpt {
-            color: #6e6e73;
-            font-size: 1.1em;
-            line-height: 1.5;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        footer {
-            margin-top: 120px;
-            padding-top: 40px;
-            border-top: 1px solid #e8e8ed;
-            text-align: center;
-            color: #86868b;
-            font-size: 0.9em;
-            opacity: 0;
-            animation: fadeIn 1s ease 1.2s forwards;
-        }
-
+        
+        /* --- Animations --- */
         @keyframes slideUp {
             from {
                 opacity: 0;
-                transform: translateY(30px);
+                transform: translateY(20px);
             }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
+
+        /* --- Footer --- */
+        footer {
+            margin-top: 100px;
+            padding-top: 40px;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-align: center;
         }
 
-        html {
-            scroll-behavior: smooth;
+        /* --- Responsive --- */
+        @media (max-width: 700px) {
+            .page-layout { padding: 80px 24px; }
+            .spotlight-grid { grid-template-columns: 1fr; }
+            .header-content h1 { font-size: 3rem; }
+
+            .archive-item {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+            .archive-date { font-size: 0.8rem; margin-bottom: 0; }
+            .archive-arrow { display: none; } /* Hide arrow on mobile */
         }
 
-        article:active {
-            transform: scale(0.99);
-        }
-
-        @media (max-width: 600px) {
-            body {
-                padding: 40px 20px;
+        @media (min-width: 1024px) {
+            .page-layout {
+                grid-template-columns: 200px 1fr; /* Sidebar + Main Content */
             }
-            
-            h1 {
-                font-size: 2.5em;
-            }
-            
-            header {
-                margin-bottom: 60px;
-            }
-            
-            .intro {
-                font-size: 1.1em;
-            }
-            
-            .article-title {
-                font-size: 1.6em;
-            }
-            
-            article {
-                padding: 30px 15px;
-            }
-
-            article:hover {
-                padding-left: 24px;
-            }
+            .sidebar { display: block; } /* Show sidebar on desktop */
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <a href="https://simplr-k18.github.io/rishanth_reddy/" class="back-to-portfolio">← Back to Portfolio</a>
-            <h1>Essays</h1>
-            <p class="intro">Thoughts on technology, design, and what matters.</p>
-        </header>
 
-        <div class="essays">
+    <!-- Global Navigation: Portfolio Link -->
+    <a href="https://simplr-k18.github.io/rishanth_reddy/" class="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        Portfolio
+    </a>
 
-            <article onclick="window.location.href='articles/technology-we-own-not-the-attention-we-rent.html'">
-                <div class="article-date">November 2025</div>
-                <h2 class="article-title">
-                    Technology we own, Not the Attention we rent
-                    <span class="arrow">→</span>
-                </h2>
-                <p class="article-excerpt">
-                    The Technology We Own, Not the Attention We Rent Designing Technology to Disappear
-                </p>
-            </article>
+    <div class="page-layout">
 
-            <article onclick="window.location.href='articles/OS-for-your-attention.html'">
-                <div class="article-date">November 2025</div>
-                <h2 class="article-title">
-                    The Operating System for Your Attention: A New Paradigm for Human-Digital Harmony
-                    <span class="arrow">→</span>
-                </h2>
-                <p class="article-excerpt">
-                    We are no longer users of technology; we have become its raw material. Every notification, every "like," every scroll extracts cognitive resources,...
-                </p>
-            </article>
+        <!-- Tags Sidebar (Desktop Only) -->
+        <aside class="sidebar">
+            <ul class="tags-list">
+                <li><a data-tag="all" class="active">All Posts</a></li>
+                <li><a data-tag="Philosophy">Philosophy</a></li>
+                <li><a data-tag="System Design">System Design</a></li>
+                <li><a data-tag="Interfaces">Interfaces</a></li>
+            </ul>
+        </aside>
 
-        </div>
+        <!-- Main Content -->
+        <main class="main-content">
+            <header>
+                <div class="header-content">
+                    <h1>Digital <span>Gardening</span> & Interface Thoughts</h1>
+                    <p class="intro">
+                        Explore the world through my eyes.
+                    </p>
+                </div>
+            </header>
 
-        <footer>
-            <p>© 2025</p>
-        </footer>
-    </div>
+            <!-- Archive (The scalable list) -->
+            <div class="section-label">All Writings</div>
+            <div class="archive-list" id="post-list">
+                
+                <!-- List Item 1 -->
+                <a href="articles/technology-we-own-not-the-attention-we-rent.html" class="archive-item" data-tags="Philosophy">
+                    <div class="archive-date">Nov 2025</div>
+                    <div class="archive-content">
+                        <div class="archive-title">Technology We Own, Not the Attention We Rent</div>
+                        <span class="archive-excerpt">On calm computing and digital ownership.</span>
+                        <div class="archive-tags">
+                            <span class="tag">Philosophy</span>
+                        </div>
+                    </div>
+                    <div class="archive-arrow">→</div>
+                </a>
+
+                <!-- List Item 2 -->
+                <a href="articles/OS-for-your-attention.html" class="archive-item" data-tags="System Design,Interfaces">
+                    <div class="archive-date">Oct 2025</div>
+                    <div class="archive-content">
+                        <div class="archive-title">An OS for Your Attention</div>
+                        <span class="archive-excerpt">Why notifications are broken and how to fix them.</span>
+                        <div class="archive-tags">
+                            <span class="tag">System Design</span>
+                            <span class="tag">Interfaces</span>
+                        </div>
+                    </div>
+                    <div class="archive-arrow">→</div>
+                </a>
+
+            </div>
+
+            <footer>
+                <p>© 2025 Rishanth Reddy</p>
+            </footer>
+        </main>
+
+    <script>
+        // Tag Filtering Script
+        document.addEventListener('DOMContentLoaded', () => {
+            const tagLinks = document.querySelectorAll('.tags-list a');
+            const postItems = document.querySelectorAll('.archive-item');
+
+            tagLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    const selectedTag = link.getAttribute('data-tag');
+
+                    // Update active state for tags
+                    tagLinks.forEach(l => l.classList.remove('active'));
+                    link.classList.add('active');
+
+                    // Filter posts
+                    postItems.forEach(item => {
+                        const itemTags = item.getAttribute('data-tags');
+                        
+                        if (selectedTag === 'all' || (itemTags && itemTags.includes(selectedTag))) {
+                            item.classList.remove('hidden');
+                        } else {
+                            item.classList.add('hidden');
+                        }
+                    });
+                });
+            });
+        });
+    </script>
 </body>
 </html>

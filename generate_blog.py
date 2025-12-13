@@ -2,11 +2,18 @@ import os
 import re
 from datetime import datetime
 from pathlib import Path
+import sys
+
+# --- Dependencies for file conversion ---
+# You'll need to install these:
+# pip install python-docx PyMuPDF
+try:
+    import docx
+    import fitz  # PyMuPDF
+except ImportError:
+    print("Warning: 'python-docx' and 'PyMuPDF' are required for .docx and .pdf conversion. Please run: pip install python-docx PyMuPDF")
 
 # Configuration
-PORTFOLIO_URL = "https://simplr-k18.github.io/rishanth_reddy/"
-BLOG_TITLE = "Essays"
-BLOG_TAGLINE = "Thoughts on technology, design, and what matters."
 
 def extract_metadata_from_html(filepath):
     """Extract title and first meaningful paragraph from HTML file"""
@@ -14,27 +21,21 @@ def extract_metadata_from_html(filepath):
         content = f.read()
     
     # Extract title
-    title_match = re.search(r'<title>(.*?)</title>', content, re.IGNORECASE)
+    title_match = re.search(r'<div class="archive-title">(.*?)</div>', content, re.DOTALL)
     title = title_match.group(1) if title_match else "Untitled"
     
-    # Extract first paragraph from article content
-    article_match = re.search(r'<article>(.*?)</article>', content, re.DOTALL | re.IGNORECASE)
-    if article_match:
-        article_content = article_match.group(1)
-        # Find first <p> tag content
-        p_match = re.search(r'<p[^>]*>(.*?)</p>', article_content, re.DOTALL)
-        if p_match:
-            excerpt = p_match.group(1)
-            # Remove HTML tags and clean up
-            excerpt = re.sub(r'<[^>]+>', '', excerpt)
-            excerpt = ' '.join(excerpt.split())  # Clean whitespace
-            # Limit to ~150 characters
-            if len(excerpt) > 150:
-                excerpt = excerpt[:147] + "..."
-        else:
-            excerpt = "Read more..."
-    else:
-        excerpt = "Read more..."
+    # Extract excerpt
+    excerpt_match = re.search(r'<span class="archive-excerpt">(.*?)</span>', content, re.DOTALL)
+    excerpt = excerpt_match.group(1).strip() if excerpt_match else "No excerpt available."
+
+    # Extract tags
+    tags_match = re.search(r'data-tags="([^"]+)"', content)
+    tags_str = tags_match.group(1) if tags_match else ""
+    tags = tags_str.split(',')
+
+    # Extract date
+    date_match = re.search(r'<div class="archive-date">(.*?)</div>', content)
+    date_str = date_match.group(1).strip() if date_match else "Date unknown"
     
     # Get file modification time
     mod_time = datetime.fromtimestamp(os.path.getmtime(filepath))
@@ -43,405 +44,280 @@ def extract_metadata_from_html(filepath):
     return {
         'title': title,
         'excerpt': excerpt,
-        'date': date_str,
-        'filename': os.path.basename(filepath)
+        'date': date_str, # We'll use the one from the HTML content
+        'filename': os.path.basename(filepath),
+        'tags': tags,
+        'tags_str': tags_str
     }
 
-def generate_index_html(articles):
-    """Generate the index.html with all articles"""
+def create_toc_item(heading_text):
+    """Creates a TOC list item from a heading."""
+    href = heading_text.lower().replace(' ', '-')
+    href = re.sub(r'[^a-z0-9-]', '', href)
+    return f'<li><a href="#{href}">{heading_text}</a></li>'
+
+def create_heading_element(heading_text):
+    """Creates an H2 element with an ID from a heading."""
+    id_attr = heading_text.lower().replace(' ', '-')
+    id_attr = re.sub(r'[^a-z0-9-]', '', id_attr)
+    return f'<h2 id="{id_attr}">{heading_text}</h2>'
+
+def convert_file_to_html(filepath, title):
+    """Convert .txt, .docx, or .pdf file to a beautiful HTML article."""
     
-    articles_html = ""
-    for i, article in enumerate(articles):
-        delay = 0.3 + (i * 0.2)
-        articles_html += f"""
-            <article onclick="window.location.href='articles/{article['filename']}'">
-                <div class="article-date">{article['date']}</div>
-                <h2 class="article-title">
-                    {article['title']}
-                    <span class="arrow">→</span>
-                </h2>
-                <p class="article-excerpt">
-                    {article['excerpt']}
-                </p>
-            </article>
-"""
-    
-    html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{BLOG_TITLE}</title>
-    <style>
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }}
+    content = ""
+    file_ext = Path(filepath).suffix.lower()
 
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-            background: #ffffff;
-            color: #1d1d1f;
-            min-height: 100vh;
-            padding: 80px 20px;
-            line-height: 1.6;
-            overflow-x: hidden;
-        }}
-
-        .container {{
-            max-width: 680px;
-            margin: 0 auto;
-        }}
-
-        header {{
-            margin-bottom: 100px;
-            opacity: 0;
-            animation: slideUp 1s ease 0.1s forwards;
-        }}
-
-        .back-to-portfolio {{
-            color: #06c;
-            text-decoration: none;
-            font-size: 0.95em;
-            display: inline-block;
-            margin-bottom: 40px;
-            transition: opacity 0.3s ease;
-        }}
-
-        .back-to-portfolio:hover {{
-            opacity: 0.7;
-        }}
-
-        h1 {{
-            font-size: 3.5em;
-            font-weight: 600;
-            letter-spacing: -0.02em;
-            margin-bottom: 20px;
-            color: #1d1d1f;
-        }}
-
-        .intro {{
-            font-size: 1.3em;
-            color: #6e6e73;
-            font-weight: 400;
-            max-width: 500px;
-        }}
-
-        .essays {{
-            display: flex;
-            flex-direction: column;
-            gap: 0;
-        }}
-
-        article {{
-            border-bottom: 1px solid #e8e8ed;
-            padding: 40px 20px;
-            cursor: pointer;
-            position: relative;
-            opacity: 0;
-            animation: slideUp 0.8s ease forwards;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            background: linear-gradient(90deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.01) 50%, rgba(0,0,0,0) 100%);
-            background-size: 200% 100%;
-            background-position: 100% 0;
-        }}
-
-        article:nth-child(1) {{ animation-delay: 0.3s; }}
-        article:nth-child(2) {{ animation-delay: 0.5s; }}
-        article:nth-child(3) {{ animation-delay: 0.7s; }}
-        article:nth-child(4) {{ animation-delay: 0.9s; }}
-        article:nth-child(5) {{ animation-delay: 1.1s; }}
-
-        article:last-child {{
-            border-bottom: none;
-        }}
-
-        article::before {{
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 0;
-            height: 60%;
-            background: #000;
-            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }}
-
-        article:hover {{
-            padding-left: 32px;
-            background-position: 0% 0;
-        }}
-
-        article:hover::before {{
-            width: 3px;
-        }}
-
-        article:hover .article-title {{
-            transform: translateX(8px);
-            color: #000;
-        }}
-
-        article:hover .article-excerpt {{
-            transform: translateX(8px);
-            color: #1d1d1f;
-        }}
-
-        article:hover .arrow {{
-            opacity: 1;
-            transform: translateX(0);
-        }}
-
-        .article-date {{
-            color: #86868b;
-            font-size: 0.95em;
-            margin-bottom: 12px;
-            font-weight: 400;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }}
-
-        .article-title {{
-            font-size: 2em;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #1d1d1f;
-            letter-spacing: -0.01em;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }}
-
-        .arrow {{
-            opacity: 0;
-            transform: translateX(-10px);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            font-size: 0.8em;
-        }}
-
-        .article-excerpt {{
-            color: #6e6e73;
-            font-size: 1.1em;
-            line-height: 1.5;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }}
-
-        footer {{
-            margin-top: 120px;
-            padding-top: 40px;
-            border-top: 1px solid #e8e8ed;
-            text-align: center;
-            color: #86868b;
-            font-size: 0.9em;
-            opacity: 0;
-            animation: fadeIn 1s ease 1.2s forwards;
-        }}
-
-        @keyframes slideUp {{
-            from {{
-                opacity: 0;
-                transform: translateY(30px);
-            }}
-            to {{
-                opacity: 1;
-                transform: translateY(0);
-            }}
-        }}
-
-        @keyframes fadeIn {{
-            from {{
-                opacity: 0;
-            }}
-            to {{
-                opacity: 1;
-            }}
-        }}
-
-        html {{
-            scroll-behavior: smooth;
-        }}
-
-        article:active {{
-            transform: scale(0.99);
-        }}
-
-        @media (max-width: 600px) {{
-            body {{
-                padding: 40px 20px;
-            }}
-            
-            h1 {{
-                font-size: 2.5em;
-            }}
-            
-            header {{
-                margin-bottom: 60px;
-            }}
-            
-            .intro {{
-                font-size: 1.1em;
-            }}
-            
-            .article-title {{
-                font-size: 1.6em;
-            }}
-            
-            article {{
-                padding: 30px 15px;
-            }}
-
-            article:hover {{
-                padding-left: 24px;
-            }}
-        }}
-    </style>
-</head>
-<body>
-    <div class="container">
-        <header>
-            <a href="{PORTFOLIO_URL}" class="back-to-portfolio">← Back to Portfolio</a>
-            <h1>{BLOG_TITLE}</h1>
-            <p class="intro">{BLOG_TAGLINE}</p>
-        </header>
-
-        <div class="essays">
-{articles_html}
-        </div>
-
-        <footer>
-            <p>© {datetime.now().year}</p>
-        </footer>
-    </div>
-</body>
-</html>"""
-    
-    return html
-
-def convert_plain_text_to_html(text_content, title):
-    """Convert plain text to beautiful HTML article"""
-    
-    # Split into paragraphs
-    paragraphs = [p.strip() for p in text_content.split('\n\n') if p.strip()]
-    
-    # Detect headings (lines that start with # or are all caps and short)
-    html_content = ""
-    for para in paragraphs:
-        if para.startswith('#'):
-            # Markdown-style heading
-            level = len(para) - len(para.lstrip('#'))
-            heading_text = para.lstrip('#').strip()
-            html_content += f"<h2>{heading_text}</h2>\n\n"
-        elif para.startswith('##'):
-            heading_text = para.lstrip('#').strip()
-            html_content += f"<h2>{heading_text}</h2>\n\n"
-        elif para.isupper() and len(para) < 80:
-            # All caps = heading
-            html_content += f"<h2>{para}</h2>\n\n"
+    try:
+        if file_ext == '.txt':
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
+        elif file_ext == '.docx':
+            doc = docx.Document(filepath)
+            content = "\n\n".join([p.text for p in doc.paragraphs if p.text])
+        elif file_ext == '.pdf':
+            with fitz.open(filepath) as doc:
+                content = ""
+                for page in doc:
+                    content += page.get_text()
         else:
-            # Regular paragraph
-            html_content += f"<p>{para}</p>\n\n"
+            raise ValueError(f"Unsupported file type: {file_ext}")
+    except NameError:
+        print(f"ERROR: Cannot process {file_ext}. Make sure required libraries are installed.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"Error processing file {filepath}: {e}")
+        sys.exit(1)
+
+    # Process content into HTML paragraphs and headings
+    paragraphs = [p.strip() for p in content.split('\n\n') if p.strip()]
     
+    html_content = ""
+    toc_items = []
+    
+    for para in paragraphs:
+        # Simple heading detection: all caps or starts with #
+        if (para.isupper() and len(para) < 80) or para.startswith('#'):
+            heading_text = para.lstrip('# ').strip()
+            html_content += create_heading_element(heading_text) + "\n"
+            toc_items.append(create_toc_item(heading_text))
+        else:
+            # Regular paragraph, check for bold/italic markers
+            para = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', para)
+            para = re.sub(r'\*(.*?)\*', r'<em>\1</em>', para)
+            html_content += f"<p>{para}</p>\n"
+
+    toc_html = "\n                ".join(toc_items)
+
+    # Use the new, consistent HTML template
     article_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title}</title>
+
+    <!-- Fonts: Fraunces (Editorial/Human) & Inter (UI/Clean) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+
     <style>
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        :root {{
+            --bg-color: #FAFAFA;
+            --surface: #FFFFFF;
+            --text-main: #202020;
+            --text-muted: #737373;
+            --border: #E5E5E5;
+            --text-secondary: #555;
+            --accent: #333;
+            --radius: 12px;
+            --easing: cubic-bezier(0.2, 0.8, 0.2, 1);
         }}
+
+        * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+
+        html {{ scroll-behavior: smooth; }}
 
         body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-            background: #ffffff;
-            color: #1d1d1f;
-            padding: 80px 20px;
-            line-height: 1.7;
-            animation: fadeIn 0.6s ease;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }}
 
-        .container {{
-            max-width: 680px;
+        .page-layout {{
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 60px;
+            max-width: 1200px;
             margin: 0 auto;
+            padding: 80px 24px;
         }}
 
-        .back {{
-            color: #06c;
+        .main-content {{
+            max-width: 800px;
+            width: 100%;
+        }}
+
+        .back-link {{
+            position: fixed;
+            top: 24px;
+            left: calc(max(24px, 50% - 600px + 24px));
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-main);
             text-decoration: none;
-            font-size: 0.95em;
-            display: inline-block;
-            margin-bottom: 60px;
-            transition: opacity 0.3s ease;
+            font-size: 0.9rem;
+            padding: 10px 16px;
+            border-radius: 100px;
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            transition: all 0.3s var(--easing);
         }}
-
-        .back:hover {{
-            opacity: 0.7;
+        .back-link:hover {{
+            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+            transform: translateY(-2px);
         }}
+        .back-link svg {{ color: var(--text-muted); }}
 
-        h1 {{
-            font-size: 3em;
-            font-weight: 600;
-            letter-spacing: -0.02em;
+        .article-header h1 {{
+            font-family: 'Fraunces', serif;
+            font-size: 3.5rem;
+            font-weight: 400;
+            line-height: 1.2;
+            letter-spacing: -0.03em;
             margin-bottom: 16px;
         }}
 
-        .date {{
-            color: #86868b;
-            margin-bottom: 40px;
-            font-size: 0.95em;
+        .article-header .date {{
+            color: var(--text-muted);
+            margin-bottom: 60px;
         }}
 
-        article p {{
-            font-size: 1.2em;
-            margin-bottom: 24px;
-            color: #1d1d1f;
-            line-height: 1.6;
+        article {{
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }}
+
+        article p, article ul {{
+            margin-bottom: 1.5em;
+        }}
+
+        article h2, article h3 {{
+            font-family: 'Fraunces', serif;
+            font-weight: 500;
+            letter-spacing: -0.02em;
+            line-height: 1.3;
+            margin-bottom: 1em;
         }}
 
         article h2 {{
-            font-size: 1.8em;
-            font-weight: 600;
-            margin-top: 48px;
-            margin-bottom: 20px;
-            letter-spacing: -0.01em;
+            font-size: 2rem;
+            margin-top: 3em;
+            padding-top: 1em;
+            border-top: 1px solid var(--border);
         }}
 
-        @keyframes fadeIn {{
-            from {{ opacity: 0; transform: translateY(10px); }}
-            to {{ opacity: 1; transform: translateY(0); }}
+        article h3 {{
+            font-size: 1.5rem;
+            margin-top: 2.5em;
+        }}
+
+        article strong {{
+            font-weight: 600;
+        }}
+
+        article em {{
+            font-style: italic;
+            color: var(--text-secondary);
+        }}
+
+        .sidebar {{
+            position: sticky;
+            top: 50vh;
+            transform: translateY(-50%);
+            align-self: start;
+            display: none;
+        }}
+
+        .toc-list {{
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }}
+
+        .toc-list a {{
+            cursor: pointer;
+            text-decoration: none;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            padding: 6px 12px;
+            border-radius: 6px;
+            transition: color 0.2s, background-color 0.2s, font-weight 0.2s;
+        }}
+        .toc-list a:hover {{
+            color: var(--text-main);
+            background-color: #F0F0F0;
+        }}
+        .toc-list a.active {{
+            color: var(--text-main);
+            font-weight: 600;
         }}
 
         @media (max-width: 600px) {{
-            body {{ padding: 40px 20px; }}
-            h1 {{ font-size: 2em; }}
-            article p {{ font-size: 1.1em; }}
-            article h2 {{ font-size: 1.5em; }}
+            .page-layout {{ padding: 60px 24px; }}
+            .article-header h1 {{ font-size: 2.5rem; }}
+            article h2 {{ font-size: 1.8rem; }}
+            article h3 {{ font-size: 1.3rem; }}
+        }}
+
+        @media (min-width: 1024px) {{
+            .page-layout {{
+                grid-template-columns: 200px 1fr;
+            }}
+            .sidebar {{ display: block; }}
         }}
     </style>
 </head>
 <body>
-    <div class="container">
-        <a href="../index.html" class="back">← Essays</a>
-        
-        <h1>{title}</h1>
-        <p class="date">{datetime.now().strftime("%B %d, %Y")}</p>
-        
-        <article>
+    <a href="../index.html" class="back-link">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        All Writings
+    </a>
+
+    <div class="page-layout">
+        <aside class="sidebar">
+            <ul class="toc-list">
+                {toc_html}
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <header class="article-header">
+                <h1>{title}</h1>
+                <p class="date">{datetime.now().strftime("%B %d, %Y")}</p>
+            </header>
+            
+            <article>
 {html_content}
-        </article>
+            </article>
+        </main>
     </div>
 </body>
 </html>"""
     
-    return article_html
+    return html
 
 def main():
     """Main function to generate blog"""
-    import sys
     
     # Create articles directory if it doesn't exist
     Path("articles").mkdir(exist_ok=True)
@@ -449,23 +325,17 @@ def main():
     # Check for --convert flag
     if len(sys.argv) >= 4 and sys.argv[1] == "--convert":
         text_file = sys.argv[2]
-        article_title = sys.argv[3]
-        
-        # Read plain text file
-        try:
-            with open(text_file, 'r', encoding='utf-8') as f:
-                text_content = f.read()
-        except FileNotFoundError:
-            print(f"Error: File '{text_file}' not found")
-            return
+        article_title = " ".join(sys.argv[3:]) # Allow titles with spaces
         
         # Generate HTML filename from title
         filename = article_title.lower().replace(' ', '-')
         filename = re.sub(r'[^a-z0-9-]', '', filename)
         output_path = f"articles/{filename}.html"
         
-        # Convert to HTML
-        article_html = convert_plain_text_to_html(text_content, article_title)
+        print(f"Converting '{text_file}' to '{output_path}'...")
+        
+        # Convert file to HTML
+        article_html = convert_file_to_html(text_file, article_title)
         
         # Save HTML file
         with open(output_path, 'w', encoding='utf-8') as f:
@@ -479,23 +349,12 @@ def main():
     article_files = list(articles_dir.glob("*.html"))
     
     if not article_files:
-        print("No articles found in articles/ directory")
+        print("\nNo articles found in articles/ directory. Run with --convert to create one.")
         return
     
-    # Extract metadata from all articles
-    articles = []
-    for filepath in sorted(article_files, key=os.path.getmtime, reverse=True):
-        metadata = extract_metadata_from_html(filepath)
-        articles.append(metadata)
-        print(f"Found: {metadata['title']}")
-    
-    # Generate index.html
-    index_content = generate_index_html(articles)
-    with open("index.html", "w", encoding="utf-8") as f:
-        f.write(index_content)
-    
-    print(f"\n✓ Generated index.html with {len(articles)} article(s)")
-    print("✓ Ready to commit and push!")
+    print(f"\nFound {len(article_files)} articles. Index page is managed manually.")
+    print("To create a new article, run:")
+    print('python generate_blog.py --convert "path/to/your/file.txt" "Your Article Title"')
 
 if __name__ == "__main__":
     main()
