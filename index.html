@@ -367,6 +367,26 @@
     <script>
         // Tag Filtering Script
         document.addEventListener('DOMContentLoaded', () => {
+            const postList = document.getElementById('post-list');
+            const posts = Array.from(postList.querySelectorAll('.archive-item'));
+
+            // Helper to parse "Mmm YYYY" into a valid Date object
+            const parseDate = (dateString) => {
+                const [month, year] = dateString.trim().split(' ');
+                // Create a date from the string. Parsing "Month Year" is reliable.
+                return new Date(`${month} 1, ${year}`);
+            };
+
+            posts.sort((a, b) => {
+                const dateA = parseDate(a.querySelector('.archive-date').textContent);
+                const dateB = parseDate(b.querySelector('.archive-date').textContent);
+                return dateB - dateA; // Sort descending
+            });
+
+            // Re-append sorted items to the DOM
+            posts.forEach(post => postList.appendChild(post));
+
+            // --- Existing Tag Filtering Logic ---
             const tagLinks = document.querySelectorAll('.tags-list a');
             const postItems = document.querySelectorAll('.archive-item');
 
